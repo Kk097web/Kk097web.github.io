@@ -1,1 +1,394 @@
-# Kk097web.github.io
+[deepseek_html_20260420_22b261.html](https://github.com/user-attachments/files/26898951/deepseek_html_20260420_22b261.html)
+# Kk097web.github.io<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор уровня английских слов (CEFR A1–C2)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-top: 0;
+            color: #1e3c72;
+        }
+        .sub {
+            color: #2c5282;
+            margin-bottom: 20px;
+            border-left: 4px solid #3182ce;
+            padding-left: 12px;
+        }
+        textarea {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-family: monospace;
+            border: 2px solid #cbd5e0;
+            border-radius: 16px;
+            resize: vertical;
+            background: #fefefe;
+        }
+        button {
+            background: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 40px;
+            margin: 16px 0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #2c5282;
+            transform: scale(1.02);
+        }
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+            background: #edf2f7;
+            padding: 16px;
+            border-radius: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 8px 16px;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-level {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .stat-count {
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+        .result-area {
+            background: #f9fafb;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            margin-top: 16px;
+            line-height: 1.7;
+        }
+        .word-span {
+            display: inline-block;
+            margin: 2px 1px;
+            padding: 2px 5px;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: 0.1s;
+        }
+        /* Цветовая маркировка по уровням */
+        .A1 { background-color: #c6f7d0; border-bottom: 2px solid #2b8c4a; }
+        .A2 { background-color: #b8e4f0; border-bottom: 2px solid #1e6f8c; }
+        .B1 { background-color: #ffe0a3; border-bottom: 2px solid #b87c00; }
+        .B2 { background-color: #ffc9b3; border-bottom: 2px solid #c23b0e; }
+        .C1 { background-color: #f2c1ff; border-bottom: 2px solid #8b2fc9; }
+        .C2 { background-color: #fbc4c4; border-bottom: 2px solid #b91c1c; }
+        .unknown { background-color: #e2e8f0; border-bottom: 2px solid #718096; }
+        .tooltip {
+            cursor: help;
+            border-bottom: 1px dotted #4a5568;
+        }
+        footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #4a5568;
+        }
+        @media (max-width: 640px) {
+            .stat-card { min-width: 60px; }
+            .stat-count { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Анализатор уровня английских слов</h1>
+    <div class="sub">Определяет уровень CEFR (A1 — начальный, C2 — профессиональный) для каждого слова в тексте.</div>
+    
+    <textarea id="inputText" rows="8" placeholder="Вставьте текст на английском языке...&#10;Например: I can run fast, but she abandoned the idea."></textarea>
+    <div><button id="analyzeBtn">🔍 Анализировать текст</button></div>
+    
+    <div id="statsPanel" class="stats" style="display: none;"></div>
+    
+    <h3>📝 Результат с подсветкой уровней:</h3>
+    <div id="resultArea" class="result-area">Здесь появится раскрашенный текст после анализа.</div>
+    <footer>⚡ Словарь ~400 слов (основная лексика). Уровни основаны на CEFR. Неизвестные слова — серым цветом.</footer>
+</div>
+
+<script>
+    // ========== СЛОВАРЬ УРОВНЕЙ (lemma -> level) ==========
+    // База содержит реальные уровни для демонстрации. Вы можете легко расширить её.
+    const wordLevels = {
+        // Местоимения, артикли, предлоги (A1)
+        "a": "A1", "an": "A1", "the": "A1", "and": "A1", "or": "A1", "but": "A1",
+        "i": "A1", "you": "A1", "he": "A1", "she": "A1", "it": "A1", "we": "A1", "they": "A1",
+        "me": "A1", "him": "A1", "her": "A1", "us": "A1", "them": "A1",
+        "my": "A1", "your": "A1", "his": "A1", "her": "A1", "its": "A1", "our": "A1", "their": "A1",
+        "this": "A1", "that": "A1", "these": "A1", "those": "A1",
+        "be": "A1", "am": "A1", "is": "A1", "are": "A1", "was": "A1", "were": "A1",
+        "do": "A1", "does": "A1", "did": "A1", "have": "A1", "has": "A1", "had": "A1",
+        "can": "A1", "will": "A1", "would": "A1", "could": "A1", "may": "A1", "might": "A1",
+        "to": "A1", "for": "A1", "of": "A1", "in": "A1", "on": "A1", "at": "A1", "with": "A1",
+        "without": "A1", "about": "A1", "by": "A1", "into": "A1", "like": "A1", "from": "A1",
+        "up": "A1", "down": "A1", "off": "A1", "over": "A1", "under": "A1",
+        "yes": "A1", "no": "A1", "not": "A1", "very": "A1", "too": "A1", "also": "A1",
+        // Глаголы A1
+        "go": "A1", "come": "A1", "see": "A1", "look": "A1", "watch": "A1", "hear": "A1",
+        "listen": "A1", "speak": "A1", "talk": "A1", "say": "A1", "tell": "A1", "ask": "A1",
+        "answer": "A1", "help": "A1", "work": "A1", "study": "A1", "learn": "A1",
+        "eat": "A1", "drink": "A1", "cook": "A1", "sleep": "A1", "wake": "A1",
+        "read": "A1", "write": "A1", "open": "A1", "close": "A1", "give": "A1", "take": "A1",
+        "buy": "A1", "sell": "A1", "pay": "A1", "cost": "A1", "live": "A1", "die": "A1",
+        "love": "A1", "like": "A1", "hate": "A1", "want": "A1", "need": "A1", "know": "A1",
+        "think": "A1", "believe": "A1", "feel": "A1", "hope": "A1", "wait": "A1",
+        "start": "A1", "begin": "A1", "finish": "A1", "stop": "A1", "try": "A1",
+        "keep": "A1", "leave": "A1", "arrive": "A1", "stay": "A1", "move": "A1",
+        // Существительные A1 (общие)
+        "time": "A1", "person": "A1", "people": "A1", "man": "A1", "woman": "A1", "child": "A1",
+        "family": "A1", "friend": "A1", "house": "A1", "home": "A1", "room": "A1", "door": "A1",
+        "car": "A1", "bus": "A1", "train": "A1", "plane": "A1", "water": "A1", "food": "A1",
+        "day": "A1", "night": "A1", "week": "A1", "year": "A1", "name": "A1", "number": "A1",
+        // Прилагательные A1
+        "good": "A1", "bad": "A1", "big": "A1", "small": "A1", "hot": "A1", "cold": "A1",
+        "happy": "A1", "sad": "A1", "new": "A1", "old": "A1", "young": "A1", "beautiful": "A1",
+        "ugly": "A1", "rich": "A1", "poor": "A1", "easy": "A1", "difficult": "A1", "fast": "A1",
+        "slow": "A1", "high": "A1", "low": "A1", "long": "A1", "short": "A1", "wide": "A1",
+        
+        // Уровень A2
+        "usually": "A2", "often": "A2", "sometimes": "A2", "never": "A2",
+        "enjoy": "A2", "prefer": "A2", "decide": "A2", "explain": "A2", "promise": "A2",
+        "borrow": "A2", "lend": "A2", "invite": "A2", "visit": "A2", "travel": "A2",
+        "drive": "A2", "fly": "A2", "swim": "A2", "run": "A2", "walk": "A2", "jump": "A2",
+        "break": "A2", "fix": "A2", "repair": "A2", "clean": "A2", "wash": "A2",
+        "interesting": "A2", "boring": "A2", "exciting": "A2", "dangerous": "A2", "safe": "A2",
+        "expensive": "A2", "cheap": "A2", "important": "A2", "necessary": "A2",
+        "problem": "A2", "question": "A2", "answer": "A2", "example": "A2",
+        "world": "A2", "country": "A2", "city": "A2", "street": "A2", "shop": "A2", "restaurant": "A2",
+        "movie": "A2", "music": "A2", "art": "A2", "sport": "A2",
+        
+        // Уровень B1
+        "ability": "B1", "achieve": "B1", "admire": "B1", "admit": "B1", "advise": "B1",
+        "afford": "B1", "argue": "B1", "arrange": "B1", "avoid": "B1", "behave": "B1",
+        "blame": "B1", "borrow": "B1", "broad": "B1", "career": "B1", "cause": "B1",
+        "challenge": "B1", "character": "B1", "compare": "B1", "complain": "B1",
+        "complete": "B1", "concern": "B1", "condition": "B1", "confident": "B1",
+        "confuse": "B1", "connect": "B1", "consider": "B1", "contain": "B1",
+        "continue": "B1", "contribute": "B1", "control": "B1", "convince": "B1",
+        "cope": "B1", "count": "B1", "course": "B1", "culture": "B1", "current": "B1",
+        "customer": "B1", "damage": "B1", "deal": "B1", "debate": "B1", "delay": "B1",
+        "deliver": "B1", "demand": "B1", "describe": "B1", "despite": "B1", "destroy": "B1",
+        "detail": "B1", "develop": "B1", "difference": "B1", "difficulty": "B1",
+        "direction": "B1", "disagree": "B1", "discover": "B1", "discuss": "B1",
+        "disease": "B1", "effect": "B1", "efficient": "B1", "effort": "B1", "employ": "B1",
+        "encourage": "B1", "enjoyable": "B1", "enough": "B1", "environment": "B1",
+        "especially": "B1", "event": "B1", "evidence": "B1", "exactly": "B1", "example": "B1",
+        "experience": "B1", "explore": "B1", "express": "B1", "factor": "B1", "fail": "B1",
+        "fair": "B1", "familiar": "B1", "feature": "B1", "finally": "B1", "financial": "B1",
+        
+        // Уровень B2
+        "abandon": "B2", "absorb": "B2", "accommodate": "B2", "accompany": "B2",
+        "accomplish": "B2", "accurate": "B2", "accuse": "B2", "achieve": "B2", "acknowledge": "B2",
+        "adapt": "B2", "address": "B2", "adjust": "B2", "administer": "B2", "adopt": "B2",
+        "adverse": "B2", "advocate": "B2", "affect": "B2", "aggregate": "B2", "allocate": "B2",
+        "anticipate": "B2", "apparent": "B2", "appeal": "B2", "apply": "B2", "approach": "B2",
+        "appropriate": "B2", "approve": "B2", "arise": "B2", "assemble": "B2", "assess": "B2",
+        "assign": "B2", "assist": "B2", "assume": "B2", "assure": "B2", "attach": "B2",
+        "attain": "B2", "attitude": "B2", "attribute": "B2", "beneficial": "B2", "brief": "B2",
+        "campaign": "B2", "capable": "B2", "capacity": "B2", "category": "B2", "challenge": "B2",
+        
+        // Уровень C1
+        "abrupt": "C1", "absurd": "C1", "abundance": "C1", "accentuate": "C1",
+        "accommodation": "C1", "acquaint": "C1", "acquire": "C1", "adamant": "C1",
+        "adept": "C1", "adhere": "C1", "adjacent": "C1", "adjoin": "C1", "admonish": "C1",
+        "adversity": "C1", "advocate": "C1", "aesthetic": "C1", "affable": "C1",
+        "aggregate": "C1", "albeit": "C1", "alienate": "C1", "allege": "C1", "allocate": "C1",
+        "ambiguous": "C1", "ambivalent": "C1", "ameliorate": "C1", "analogy": "C1",
+        "anecdote": "C1", "animosity": "C1", "anomaly": "C1", "antecedent": "C1",
+        
+        // Уровень C2 (примеры сложных слов)
+        "abnegation": "C2", "abrogate": "C2", "absquatulate": "C2", "acatalectic": "C2",
+        "accidence": "C2", "accouter": "C2", "acquiesce": "C2", "adumbrate": "C2",
+        "aggrandize": "C2", "anachronism": "C2", "apocryphal": "C2", "apotheosis": "C2",
+        "bellwether": "C2", "bombastic": "C2", "cacophony": "C2", "chicanery": "C2",
+        "cognizant": "C2", "complaisant": "C2", "conflate": "C2", "conundrum": "C2",
+        "demagogue": "C2", "didactic": "C2", "disabuse": "C2", "disparate": "C2",
+        "ebullient": "C2", "efficacious": "C2", "eleemosynary": "C2", "emollient": "C2",
+        "empirical": "C2", "encomium": "C2", "ephemeral": "C2", "equanimity": "C2"
+    };
+    
+    // Дополним часто встречающиеся формы глаголов и существительных
+    // Простое приведение: добавим некоторые неправильные формы вручную (для демонстрации)
+    const irregularMap = {
+        "went": "go", "gone": "go", "done": "do", "did": "do", "made": "make",
+        "came": "come", "took": "take", "taken": "take", "given": "give", "seen": "see",
+        "ate": "eat", "eaten": "eat", "drank": "drink", "drunk": "drink", "spoke": "speak",
+        "spoken": "speak", "wrote": "write", "written": "write", "knew": "know", "known": "know",
+        "thought": "think", "bought": "buy", "brought": "bring", "caught": "catch",
+        "taught": "teach", "fought": "fight", "found": "find", "heard": "hear",
+        "held": "hold", "kept": "keep", "left": "leave", "lost": "lose", "met": "meet",
+        "paid": "pay", "ran": "run", "said": "say", "sold": "sell", "sat": "sit",
+        "slept": "sleep", "stood": "stand", "told": "tell", "understood": "understand",
+        "woke": "wake", "worn": "wear", "won": "win"
+    };
+    
+    // Базовая лемматизация (без spaCy, но для прототипа достаточно)
+    function simpleLemmatize(word) {
+        let lower = word.toLowerCase();
+        // Проверка неправильных глаголов
+        if (irregularMap[lower]) return irregularMap[lower];
+        // Существительные множественное число (простые правила)
+        if (lower.endsWith("ies") && !lower.endsWith("eies")) {
+            let cand = lower.slice(0, -3) + "y";
+            if (wordLevels[cand]) return cand;
+        }
+        if (lower.endsWith("es") && !(lower.endsWith("sses") || lower.endsWith("ches") || lower.endsWith("shes"))) {
+            let cand = lower.slice(0, -2);
+            if (wordLevels[cand]) return cand;
+        }
+        if (lower.endsWith("s") && !lower.endsWith("ss") && !lower.endsWith("us") && !lower.endsWith("is")) {
+            let cand = lower.slice(0, -1);
+            if (wordLevels[cand]) return cand;
+        }
+        // -ing форма -> убираем ing, проверяем
+        if (lower.endsWith("ing")) {
+            let stem = lower.slice(0, -3);
+            if (wordLevels[stem]) return stem;
+            if (stem.endsWith("e")) {
+                let noE = stem.slice(0, -1);
+                if (wordLevels[noE]) return noE;
+            }
+            // удвоение согласной: running -> run
+            if (stem.length > 1 && stem[stem.length-1] === stem[stem.length-2]) {
+                let cand = stem.slice(0, -1);
+                if (wordLevels[cand]) return cand;
+            }
+        }
+        // -ed окончание
+        if (lower.endsWith("ed")) {
+            let stem = lower.slice(0, -2);
+            if (wordLevels[stem]) return stem;
+            if (stem.endsWith("e")) {
+                let noE = stem.slice(0, -1);
+                if (wordLevels[noE]) return noE;
+            }
+        }
+        return lower;
+    }
+    
+    // Функция анализа текста
+    function analyzeText(text) {
+        // Разбиваем на слова, сохраняя знаки препинания отдельно (для красивого вывода)
+        const tokens = text.match(/\b[\w']+(?:-\w+)*\b|\S/g) || [];
+        const resultTokens = [];
+        let stats = { "A1":0, "A2":0, "B1":0, "B2":0, "C1":0, "C2":0, "unknown":0 };
+        
+        for (let token of tokens) {
+            // Проверяем, является ли токен словом (буквы + возможно апостроф)
+            if (/^[a-zA-Z']+$/.test(token)) {
+                let lemma = simpleLemmatize(token);
+                let level = wordLevels[lemma] || "unknown";
+                if (level !== "unknown") stats[level]++;
+                else stats.unknown++;
+                resultTokens.push({ text: token, level: level, lemma: lemma });
+            } else {
+                // Пунктуация и пробелы: не анализируем, просто выводим
+                resultTokens.push({ text: token, level: null });
+            }
+        }
+        return { tokens: resultTokens, stats: stats };
+    }
+    
+    // Рендер раскрашенного текста
+    function renderResult(tokens) {
+        let html = '';
+        for (let t of tokens) {
+            if (t.level === null) {
+                html += t.text;
+            } else {
+                let levelClass = t.level;
+                let title = `Уровень: ${t.level} (лемма: ${t.lemma || t.text.toLowerCase()})`;
+                html += `<span class="word-span ${levelClass}" title="${title}">${escapeHtml(t.text)}</span>`;
+            }
+        }
+        return html;
+    }
+    
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function displayStats(stats) {
+        const levels = ['A1','A2','B1','B2','C1','C2','unknown'];
+        const levelNames = {'A1':'Начальный','A2':'Элементарный','B1':'Средний','B2':'Выше среднего','C1':'Продвинутый','C2':'Профессиональный','unknown':'Неизвестный'};
+        let html = '';
+        for (let lvl of levels) {
+            let count = stats[lvl] || 0;
+            html += `
+                <div class="stat-card">
+                    <div class="stat-level" style="color:${lvl==='unknown'?'#718096':'#2d3748'}">${lvl} ${levelNames[lvl]}</div>
+                    <div class="stat-count">${count}</div>
+                </div>
+            `;
+        }
+        return html;
+    }
+    
+    // Основная логика
+    document.getElementById('analyzeBtn').addEventListener('click', () => {
+        const textarea = document.getElementById('inputText');
+        const text = textarea.value;
+        if (!text.trim()) {
+            alert('Пожалуйста, введите текст для анализа.');
+            return;
+        }
+        const { tokens, stats } = analyzeText(text);
+        const coloredHtml = renderResult(tokens);
+        document.getElementById('resultArea').innerHTML = coloredHtml;
+        const statsHtml = displayStats(stats);
+        const statsPanel = document.getElementById('statsPanel');
+        statsPanel.innerHTML = statsHtml;
+        statsPanel.style.display = 'flex';
+    });
+    
+    // Пример для первого запуска (покажем демо)
+    window.addEventListener('load', () => {
+        const demoText = "I can run fast and swim well. However, she abandoned the project because it was too difficult. The weather is beautiful today.";
+        document.getElementById('inputText').value = demoText;
+        // Автоанализ при загрузке
+        setTimeout(() => {
+            document.getElementById('analyzeBtn').click();
+        }, 100);
+    });
+</script>
+</body>
+</html>
