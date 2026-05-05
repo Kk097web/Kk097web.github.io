@@ -156,7 +156,7 @@
     // Функция загрузки JSON-словаря
     async function loadDictionary() {
         try {
-            const response = await fetch('https://Kk097web.github.io/Kk097web.github.io/cefrj.vocabulary.profile.1.5.json');
+            const response = await fetch('cefrj.vocabulary.profile.1.5.json');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
             
