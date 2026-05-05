@@ -1,5 +1,4 @@
-[deepseek_html_20260420_22b261.html](https://github.com/user-attachments/files/26898951/deepseek_html_20260420_22b261.html)
-# Kk097web.github.io<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -101,7 +100,6 @@
             font-size: 1rem;
             transition: 0.1s;
         }
-        /* Цветовая маркировка по уровням */
         .A1 { background-color: #c6f7d0; border-bottom: 2px solid #2b8c4a; }
         .A2 { background-color: #b8e4f0; border-bottom: 2px solid #1e6f8c; }
         .B1 { background-color: #ffe0a3; border-bottom: 2px solid #b87c00; }
@@ -109,10 +107,6 @@
         .C1 { background-color: #f2c1ff; border-bottom: 2px solid #8b2fc9; }
         .C2 { background-color: #fbc4c4; border-bottom: 2px solid #b91c1c; }
         .unknown { background-color: #e2e8f0; border-bottom: 2px solid #718096; }
-        .tooltip {
-            cursor: help;
-            border-bottom: 1px dotted #4a5568;
-        }
         footer {
             margin-top: 24px;
             text-align: center;
@@ -128,7 +122,8 @@
 <body>
 <div class="container">
     <h1>📊 Анализатор уровня английских слов</h1>
-    <div class="sub">Определяет уровень CEFR (A1 — начальный, C2 — профессиональный) для каждого слова в тексте.</div>
+    <div class="sub">Определяет уровень CEFR (A1 — начальный, C2 — профессиональный) для каждого слова в тексте.<br>
+    📚 Словарь загружается из JSON (~15 тыс. слов). Первый анализ может занять долю секунды.</div>
     
     <textarea id="inputText" rows="8" placeholder="Вставьте текст на английском языке...&#10;Например: I can run fast, but she abandoned the idea."></textarea>
     <div><button id="analyzeBtn">🔍 Анализировать текст</button></div>
@@ -136,113 +131,15 @@
     <div id="statsPanel" class="stats" style="display: none;"></div>
     
     <h3>📝 Результат с подсветкой уровней:</h3>
-    <div id="resultArea" class="result-area">Здесь появится раскрашенный текст после анализа.</div>
-    <footer>⚡ Словарь ~400 слов (основная лексика). Уровни основаны на CEFR. Неизвестные слова — серым цветом.</footer>
+    <div id="resultArea" class="result-area">Загрузка словаря... Пожалуйста, подождите.</div>
+    <footer>⚡ Словарь CEFR-J (около 15000 слов). Уровни по шкале CEFR. Неизвестные слова — серым цветом.</footer>
 </div>
 
 <script>
-    // ========== СЛОВАРЬ УРОВНЕЙ (lemma -> level) ==========
-    // База содержит реальные уровни для демонстрации. Вы можете легко расширить её.
-    const wordLevels = {
-        // Местоимения, артикли, предлоги (A1)
-        "a": "A1", "an": "A1", "the": "A1", "and": "A1", "or": "A1", "but": "A1",
-        "i": "A1", "you": "A1", "he": "A1", "she": "A1", "it": "A1", "we": "A1", "they": "A1",
-        "me": "A1", "him": "A1", "her": "A1", "us": "A1", "them": "A1",
-        "my": "A1", "your": "A1", "his": "A1", "her": "A1", "its": "A1", "our": "A1", "their": "A1",
-        "this": "A1", "that": "A1", "these": "A1", "those": "A1",
-        "be": "A1", "am": "A1", "is": "A1", "are": "A1", "was": "A1", "were": "A1",
-        "do": "A1", "does": "A1", "did": "A1", "have": "A1", "has": "A1", "had": "A1",
-        "can": "A1", "will": "A1", "would": "A1", "could": "A1", "may": "A1", "might": "A1",
-        "to": "A1", "for": "A1", "of": "A1", "in": "A1", "on": "A1", "at": "A1", "with": "A1",
-        "without": "A1", "about": "A1", "by": "A1", "into": "A1", "like": "A1", "from": "A1",
-        "up": "A1", "down": "A1", "off": "A1", "over": "A1", "under": "A1",
-        "yes": "A1", "no": "A1", "not": "A1", "very": "A1", "too": "A1", "also": "A1",
-        // Глаголы A1
-        "go": "A1", "come": "A1", "see": "A1", "look": "A1", "watch": "A1", "hear": "A1",
-        "listen": "A1", "speak": "A1", "talk": "A1", "say": "A1", "tell": "A1", "ask": "A1",
-        "answer": "A1", "help": "A1", "work": "A1", "study": "A1", "learn": "A1",
-        "eat": "A1", "drink": "A1", "cook": "A1", "sleep": "A1", "wake": "A1",
-        "read": "A1", "write": "A1", "open": "A1", "close": "A1", "give": "A1", "take": "A1",
-        "buy": "A1", "sell": "A1", "pay": "A1", "cost": "A1", "live": "A1", "die": "A1",
-        "love": "A1", "like": "A1", "hate": "A1", "want": "A1", "need": "A1", "know": "A1",
-        "think": "A1", "believe": "A1", "feel": "A1", "hope": "A1", "wait": "A1",
-        "start": "A1", "begin": "A1", "finish": "A1", "stop": "A1", "try": "A1",
-        "keep": "A1", "leave": "A1", "arrive": "A1", "stay": "A1", "move": "A1",
-        // Существительные A1 (общие)
-        "time": "A1", "person": "A1", "people": "A1", "man": "A1", "woman": "A1", "child": "A1",
-        "family": "A1", "friend": "A1", "house": "A1", "home": "A1", "room": "A1", "door": "A1",
-        "car": "A1", "bus": "A1", "train": "A1", "plane": "A1", "water": "A1", "food": "A1",
-        "day": "A1", "night": "A1", "week": "A1", "year": "A1", "name": "A1", "number": "A1",
-        // Прилагательные A1
-        "good": "A1", "bad": "A1", "big": "A1", "small": "A1", "hot": "A1", "cold": "A1",
-        "happy": "A1", "sad": "A1", "new": "A1", "old": "A1", "young": "A1", "beautiful": "A1",
-        "ugly": "A1", "rich": "A1", "poor": "A1", "easy": "A1", "difficult": "A1", "fast": "A1",
-        "slow": "A1", "high": "A1", "low": "A1", "long": "A1", "short": "A1", "wide": "A1",
-        
-        // Уровень A2
-        "usually": "A2", "often": "A2", "sometimes": "A2", "never": "A2",
-        "enjoy": "A2", "prefer": "A2", "decide": "A2", "explain": "A2", "promise": "A2",
-        "borrow": "A2", "lend": "A2", "invite": "A2", "visit": "A2", "travel": "A2",
-        "drive": "A2", "fly": "A2", "swim": "A2", "run": "A2", "walk": "A2", "jump": "A2",
-        "break": "A2", "fix": "A2", "repair": "A2", "clean": "A2", "wash": "A2",
-        "interesting": "A2", "boring": "A2", "exciting": "A2", "dangerous": "A2", "safe": "A2",
-        "expensive": "A2", "cheap": "A2", "important": "A2", "necessary": "A2",
-        "problem": "A2", "question": "A2", "answer": "A2", "example": "A2",
-        "world": "A2", "country": "A2", "city": "A2", "street": "A2", "shop": "A2", "restaurant": "A2",
-        "movie": "A2", "music": "A2", "art": "A2", "sport": "A2",
-        
-        // Уровень B1
-        "ability": "B1", "achieve": "B1", "admire": "B1", "admit": "B1", "advise": "B1",
-        "afford": "B1", "argue": "B1", "arrange": "B1", "avoid": "B1", "behave": "B1",
-        "blame": "B1", "borrow": "B1", "broad": "B1", "career": "B1", "cause": "B1",
-        "challenge": "B1", "character": "B1", "compare": "B1", "complain": "B1",
-        "complete": "B1", "concern": "B1", "condition": "B1", "confident": "B1",
-        "confuse": "B1", "connect": "B1", "consider": "B1", "contain": "B1",
-        "continue": "B1", "contribute": "B1", "control": "B1", "convince": "B1",
-        "cope": "B1", "count": "B1", "course": "B1", "culture": "B1", "current": "B1",
-        "customer": "B1", "damage": "B1", "deal": "B1", "debate": "B1", "delay": "B1",
-        "deliver": "B1", "demand": "B1", "describe": "B1", "despite": "B1", "destroy": "B1",
-        "detail": "B1", "develop": "B1", "difference": "B1", "difficulty": "B1",
-        "direction": "B1", "disagree": "B1", "discover": "B1", "discuss": "B1",
-        "disease": "B1", "effect": "B1", "efficient": "B1", "effort": "B1", "employ": "B1",
-        "encourage": "B1", "enjoyable": "B1", "enough": "B1", "environment": "B1",
-        "especially": "B1", "event": "B1", "evidence": "B1", "exactly": "B1", "example": "B1",
-        "experience": "B1", "explore": "B1", "express": "B1", "factor": "B1", "fail": "B1",
-        "fair": "B1", "familiar": "B1", "feature": "B1", "finally": "B1", "financial": "B1",
-        
-        // Уровень B2
-        "abandon": "B2", "absorb": "B2", "accommodate": "B2", "accompany": "B2",
-        "accomplish": "B2", "accurate": "B2", "accuse": "B2", "achieve": "B2", "acknowledge": "B2",
-        "adapt": "B2", "address": "B2", "adjust": "B2", "administer": "B2", "adopt": "B2",
-        "adverse": "B2", "advocate": "B2", "affect": "B2", "aggregate": "B2", "allocate": "B2",
-        "anticipate": "B2", "apparent": "B2", "appeal": "B2", "apply": "B2", "approach": "B2",
-        "appropriate": "B2", "approve": "B2", "arise": "B2", "assemble": "B2", "assess": "B2",
-        "assign": "B2", "assist": "B2", "assume": "B2", "assure": "B2", "attach": "B2",
-        "attain": "B2", "attitude": "B2", "attribute": "B2", "beneficial": "B2", "brief": "B2",
-        "campaign": "B2", "capable": "B2", "capacity": "B2", "category": "B2", "challenge": "B2",
-        
-        // Уровень C1
-        "abrupt": "C1", "absurd": "C1", "abundance": "C1", "accentuate": "C1",
-        "accommodation": "C1", "acquaint": "C1", "acquire": "C1", "adamant": "C1",
-        "adept": "C1", "adhere": "C1", "adjacent": "C1", "adjoin": "C1", "admonish": "C1",
-        "adversity": "C1", "advocate": "C1", "aesthetic": "C1", "affable": "C1",
-        "aggregate": "C1", "albeit": "C1", "alienate": "C1", "allege": "C1", "allocate": "C1",
-        "ambiguous": "C1", "ambivalent": "C1", "ameliorate": "C1", "analogy": "C1",
-        "anecdote": "C1", "animosity": "C1", "anomaly": "C1", "antecedent": "C1",
-        
-        // Уровень C2 (примеры сложных слов)
-        "abnegation": "C2", "abrogate": "C2", "absquatulate": "C2", "acatalectic": "C2",
-        "accidence": "C2", "accouter": "C2", "acquiesce": "C2", "adumbrate": "C2",
-        "aggrandize": "C2", "anachronism": "C2", "apocryphal": "C2", "apotheosis": "C2",
-        "bellwether": "C2", "bombastic": "C2", "cacophony": "C2", "chicanery": "C2",
-        "cognizant": "C2", "complaisant": "C2", "conflate": "C2", "conundrum": "C2",
-        "demagogue": "C2", "didactic": "C2", "disabuse": "C2", "disparate": "C2",
-        "ebullient": "C2", "efficacious": "C2", "eleemosynary": "C2", "emollient": "C2",
-        "empirical": "C2", "encomium": "C2", "ephemeral": "C2", "equanimity": "C2"
-    };
+    // Глобальный словарь уровней (будет заполнен из JSON)
+    let wordLevels = {};
     
-    // Дополним часто встречающиеся формы глаголов и существительных
-    // Простое приведение: добавим некоторые неправильные формы вручную (для демонстрации)
+    // Карта неправильных глаголов (оставляем для базовой лемматизации)
     const irregularMap = {
         "went": "go", "gone": "go", "done": "do", "did": "do", "made": "make",
         "came": "come", "took": "take", "taken": "take", "given": "give", "seen": "see",
@@ -256,12 +153,47 @@
         "woke": "wake", "worn": "wear", "won": "win"
     };
     
-    // Базовая лемматизация (без spaCy, но для прототипа достаточно)
+    // Функция загрузки JSON-словаря
+    async function loadDictionary() {
+        try {
+            const response = await fetch('cefrj-vocabulary-profile-1.5.json');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            
+            // Очищаем старый словарь
+            wordLevels = {};
+            let added = 0;
+            for (const entry of data) {
+                const word = entry.headword.toLowerCase();
+                const level = entry.CEFR;
+                if (level && ['A1','A2','B1','B2','C1','C2'].includes(level)) {
+                    // Не перезаписываем, если слово уже есть (оставляем первый уровень)
+                    if (!wordLevels[word]) {
+                        wordLevels[word] = level;
+                        added++;
+                    }
+                }
+            }
+            console.log(`Словарь загружен: ${added} уникальных слов с уровнями.`);
+            document.getElementById('resultArea').innerHTML = 'Словарь загружен. Введите текст и нажмите "Анализировать".';
+            // Если в текстовом поле уже есть текст, можно автоматически проанализировать
+            const textarea = document.getElementById('inputText');
+            if (textarea.value.trim() !== "") {
+                document.getElementById('analyzeBtn').click();
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки словаря:', error);
+            document.getElementById('resultArea').innerHTML = 'Не удалось загрузить словарь. Убедитесь, что файл cefrj-vocabulary-profile-1.5.json находится в той же папке, и повторите попытку.';
+        }
+    }
+    
+    // Базовая лемматизация (модифицирована для работы с загруженным словарём)
     function simpleLemmatize(word) {
         let lower = word.toLowerCase();
-        // Проверка неправильных глаголов
+        // 1. Проверка неправильных глаголов
         if (irregularMap[lower]) return irregularMap[lower];
-        // Существительные множественное число (простые правила)
+        
+        // 2. Множественное число существительных (простые правила)
         if (lower.endsWith("ies") && !lower.endsWith("eies")) {
             let cand = lower.slice(0, -3) + "y";
             if (wordLevels[cand]) return cand;
@@ -274,7 +206,8 @@
             let cand = lower.slice(0, -1);
             if (wordLevels[cand]) return cand;
         }
-        // -ing форма -> убираем ing, проверяем
+        
+        // 3. -ing форма
         if (lower.endsWith("ing")) {
             let stem = lower.slice(0, -3);
             if (wordLevels[stem]) return stem;
@@ -288,7 +221,8 @@
                 if (wordLevels[cand]) return cand;
             }
         }
-        // -ed окончание
+        
+        // 4. -ed окончание
         if (lower.endsWith("ed")) {
             let stem = lower.slice(0, -2);
             if (wordLevels[stem]) return stem;
@@ -297,18 +231,18 @@
                 if (wordLevels[noE]) return noE;
             }
         }
+        
+        // Возвращаем исходное слово, если ни одно правило не сработало
         return lower;
     }
     
     // Функция анализа текста
     function analyzeText(text) {
-        // Разбиваем на слова, сохраняя знаки препинания отдельно (для красивого вывода)
         const tokens = text.match(/\b[\w']+(?:-\w+)*\b|\S/g) || [];
         const resultTokens = [];
         let stats = { "A1":0, "A2":0, "B1":0, "B2":0, "C1":0, "C2":0, "unknown":0 };
         
         for (let token of tokens) {
-            // Проверяем, является ли токен словом (буквы + возможно апостроф)
             if (/^[a-zA-Z']+$/.test(token)) {
                 let lemma = simpleLemmatize(token);
                 let level = wordLevels[lemma] || "unknown";
@@ -316,7 +250,6 @@
                 else stats.unknown++;
                 resultTokens.push({ text: token, level: level, lemma: lemma });
             } else {
-                // Пунктуация и пробелы: не анализируем, просто выводим
                 resultTokens.push({ text: token, level: null });
             }
         }
@@ -363,12 +296,16 @@
         return html;
     }
     
-    // Основная логика
+    // Обработчик кнопки
     document.getElementById('analyzeBtn').addEventListener('click', () => {
         const textarea = document.getElementById('inputText');
         const text = textarea.value;
         if (!text.trim()) {
             alert('Пожалуйста, введите текст для анализа.');
+            return;
+        }
+        if (Object.keys(wordLevels).length === 0) {
+            alert('Словарь ещё не загружен. Пожалуйста, подождите или обновите страницу.');
             return;
         }
         const { tokens, stats } = analyzeText(text);
@@ -380,14 +317,15 @@
         statsPanel.style.display = 'flex';
     });
     
-    // Пример для первого запуска (покажем демо)
+    // Загрузка словаря при старте
+    loadDictionary();
+    
+    // Демо текст для примера (можно оставить, но не автоанализировать до загрузки словаря)
     window.addEventListener('load', () => {
         const demoText = "I can run fast and swim well. However, she abandoned the project because it was too difficult. The weather is beautiful today.";
         document.getElementById('inputText').value = demoText;
-        // Автоанализ при загрузке
-        setTimeout(() => {
-            document.getElementById('analyzeBtn').click();
-        }, 100);
+        // Не вызываем анализ автоматически, дождёмся загрузки словаря
+        // loadDictionary сам вызовет анализ, если текст не пуст.
     });
 </script>
 </body>
